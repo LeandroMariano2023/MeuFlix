@@ -1,7 +1,17 @@
-let filmes = JSON.parse(localStorage.getItem("meusFilmes")) || [];
+let categoriaAtual = 'filmes';
+let dados = {};
 
-function adicionarFilme() {
-  const url = document.getElementById("filme").value.trim();
+function carregarSecao(categoria) {
+  categoriaAtual = categoria;
+  dados[categoriaAtual] = JSON.parse(localStorage.getItem(`meus_${categoriaAtual}`)) || [];
+  document.getElementById("url").value = "";
+  document.getElementById("nome").value = "";
+  document.getElementById("mensagemErro").textContent = "";
+  listarItens();
+}
+
+function adicionarItem() {
+  const url = document.getElementById("url").value.trim();
   const nome = document.getElementById("nome").value.trim();
   const msgErro = document.getElementById("mensagemErro");
   msgErro.textContent = "";
@@ -9,46 +19,44 @@ function adicionarFilme() {
   const extensaoValida = /\.(jpg|jpeg|png)$/i;
 
   if (!url.match(extensaoValida)) {
-    msgErro.textContent = "URL inválida. Use uma imagem .jpg, .jpeg ou .png.";
+    msgErro.textContent = "URL inválida. Use .jpg, .jpeg ou .png.";
     return;
   }
 
   if (!nome) {
-    msgErro.textContent = "Por favor, insira o nome do filme.";
+    msgErro.textContent = "Por favor, insira o nome.";
     return;
   }
 
-  if (filmes.some((f) => f.url === url)) {
-    msgErro.textContent = "Este filme já foi adicionado.";
+  if (dados[categoriaAtual].some(item => item.url === url)) {
+    msgErro.textContent = "Este item já foi adicionado.";
     return;
   }
 
-  const novoFilme = { url, nome, nota: 0 };
-  filmes.push(novoFilme);
-  salvarFilmes();
-  listarFilmesNaTela();
-  document.getElementById("filme").value = "";
-  document.getElementById("nome").value = "";
+  const novoItem = { url, nome, nota: 0 };
+  dados[categoriaAtual].push(novoItem);
+  salvarDados();
+  listarItens();
 }
 
-function listarFilmesNaTela() {
-  const elementoLista = document.getElementById("listaFilmes");
-  elementoLista.innerHTML = "";
+function listarItens() {
+  const lista = document.getElementById("listaItens");
+  lista.innerHTML = "";
 
-  filmes.forEach((filme, index) => {
-    const filmeCard = document.createElement("div");
-    filmeCard.classList.add("filme-card");
+  dados[categoriaAtual].forEach((item, index) => {
+    const card = document.createElement("div");
+    card.classList.add("filme-card");
 
-    const estrelasHTML = gerarEstrelas(filme.nota, index);
-
-    filmeCard.innerHTML = `
-      <img src="${filme.url}" alt="${filme.nome}">
-      <p>${filme.nome}</p>
-      <div class="estrelas" id="estrelas-${index}">${estrelasHTML}</div>
-      <button onclick="removerFilme(${index})">Remover</button>
+    card.innerHTML = `
+      <img src="${item.url}" alt="${item.nome}">
+      <p>${item.nome}</p>
+      <div class="estrelas" id="estrelas-${index}">
+        ${gerarEstrelas(item.nota, index)}
+      </div>
+      <button onclick="removerItem(${index})">Remover</button>
     `;
 
-    elementoLista.appendChild(filmeCard);
+    lista.appendChild(card);
     adicionarListenersEstrelas(index);
   });
 }
@@ -57,33 +65,29 @@ function gerarEstrelas(nota, index) {
   let html = "";
   for (let i = 1; i <= 5; i++) {
     const classe = i <= nota ? "estrela selecionada" : "estrela";
-    html += `<span class="${classe}" data-index="${index}" data-nota="${i}">&#9733;</span>`;
+    html += `<span class="${classe}" data-nota="${i}" data-index="${index}">&#9733;</span>`;
   }
   return html;
 }
 
 function adicionarListenersEstrelas(index) {
   const estrelas = document.querySelectorAll(`#estrelas-${index} .estrela`);
-  estrelas.forEach((estrela) => {
+  estrelas.forEach(estrela => {
     estrela.addEventListener("click", () => {
       const nota = parseInt(estrela.dataset.nota);
-      filmes[index].nota = nota;
-      salvarFilmes();
-      listarFilmesNaTela();
+      dados[categoriaAtual][index].nota = nota;
+      salvarDados();
+      listarItens();
     });
   });
 }
 
-function salvarFilmes() {
-  localStorage.setItem("meusFilmes", JSON.stringify(filmes));
+function removerItem(index) {
+  dados[categoriaAtual].splice(index, 1);
+  salvarDados();
+  listarItens();
 }
 
-function carregarFilmes() {
-  listarFilmesNaTela();
-}
-
-function removerFilme(index) {
-  filmes.splice(index, 1);
-  salvarFilmes();
-  listarFilmesNaTela();
+function salvarDados() {
+  localStorage.setItem(`meus_${categoriaAtual}`, JSON.stringify(dados[categoriaAtual]));
 }
